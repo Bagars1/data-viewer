@@ -1,26 +1,26 @@
-let currentDataset = null;
+let currentFile = null;
 let currentPage = 1;
+
 const pageSize = 10;
 
 
-// Загружаем список datasets
-async function loadDatasets() {
-    const response = await fetch("/datasets");
+// Загружаем список файлов
+async function loadFiles() {
+    const response = await fetch("/files");
     const data = await response.json();
 
-    const list = document.getElementById("datasets");
+    const list = document.getElementById("files");
 
     list.innerHTML = "";
 
-    data.datasets.forEach(dataset => {
+    data.files.forEach(file => {
         const item = document.createElement("li");
 
-        item.textContent = dataset;
-
+        item.textContent = file;
         item.style.cursor = "pointer";
 
         item.addEventListener("click", () => {
-            loadDataset(dataset);
+            loadFile(file);
         });
 
         list.appendChild(item);
@@ -28,31 +28,31 @@ async function loadDatasets() {
 }
 
 
-// Загружаем выбранный dataset
-async function loadDataset(dataset) {
-    currentDataset = dataset;
+// Загружаем выбранный файл
+async function loadFile(file) {
+    currentFile = file;
     currentPage = 1;
 
     await loadData();
-    await loadMetadata();
 }
 
 
-// Загружаем данные таблицы
+// Загружаем данные файла
 async function loadData() {
     const response = await fetch(
-        `/datasets/${currentDataset}?page=${currentPage}&page_size=${pageSize}`
+        `/files/${encodeURIComponent(currentFile)}?page=${currentPage}&page_size=${pageSize}`
     );
 
     const data = await response.json();
 
-    document.getElementById("dataset-title").textContent = currentDataset;
+    document.getElementById("file-title").textContent = currentFile;
 
     const tableHead = document.querySelector("#data-table thead");
     const tableBody = document.querySelector("#data-table tbody");
 
     tableHead.innerHTML = "";
     tableBody.innerHTML = "";
+
 
     // Создаём заголовки таблицы
     const headerRow = document.createElement("tr");
@@ -85,7 +85,9 @@ async function loadData() {
 
 
     // Информация о странице
-    const totalPages = Math.ceil(data.total_rows / data.page_size);
+    const totalPages = Math.ceil(
+        data.total_rows / data.page_size
+    );
 
     document.getElementById("page-info").textContent =
         `Page ${data.page} of ${totalPages}`;
@@ -95,63 +97,6 @@ async function loadData() {
 
     document.getElementById("next").disabled =
         currentPage >= totalPages;
-}
-
-
-// Загружаем metadata
-async function loadMetadata() {
-    const response = await fetch(
-        `/datasets/${currentDataset}/metadata`
-    );
-
-    const data = await response.json();
-
-    const tableHead = document.querySelector("#metadata-table thead");
-    const tableBody = document.querySelector("#metadata-table tbody");
-
-    tableHead.innerHTML = "";
-    tableBody.innerHTML = "";
-
-
-    const columns = [
-        "Variable",
-        "Label",
-        "Data Type",
-        "Mandatory",
-        "Codelist",
-        "Role",
-        "Core"
-    ];
-
-
-    // Заголовки metadata
-    const headerRow = document.createElement("tr");
-
-    columns.forEach(column => {
-        const th = document.createElement("th");
-
-        th.textContent = column;
-
-        headerRow.appendChild(th);
-    });
-
-    tableHead.appendChild(headerRow);
-
-
-    // Строки metadata
-    data.metadata.forEach(item => {
-        const row = document.createElement("tr");
-
-        columns.forEach(column => {
-            const td = document.createElement("td");
-
-            td.textContent = item[column] ?? "";
-
-            row.appendChild(td);
-        });
-
-        tableBody.appendChild(row);
-    });
 }
 
 
@@ -173,5 +118,5 @@ document.getElementById("next").addEventListener("click", async () => {
 });
 
 
-// Загружаем datasets при открытии страницы
-loadDatasets();
+// Загружаем файлы при открытии страницы
+loadFiles();
