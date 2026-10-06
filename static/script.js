@@ -1,5 +1,6 @@
 let currentFile = null;
 let currentPage = 1;
+let currentSheet = null;
 
 const pageSize = 10;
 
@@ -32,20 +33,69 @@ async function loadFiles() {
 async function loadFile(file) {
     currentFile = file;
     currentPage = 1;
+    currentSheet = null;
 
+    await loadSheets();
     await loadData();
+}
+
+
+// Загружаем листы Excel
+async function loadSheets() {
+    const sheetsContainer = document.getElementById("sheets");
+
+    sheetsContainer.innerHTML = "";
+
+    if (!currentFile.toLowerCase().endsWith(".xlsx")) {
+        return;
+    }
+
+    const response = await fetch(
+        `/files/${encodeURIComponent(currentFile)}/sheets`
+    );
+
+    const data = await response.json();
+
+    data.sheets.forEach(sheet => {
+        const button = document.createElement("button");
+
+        button.textContent = sheet;
+
+        button.addEventListener("click", () => {
+            currentSheet = sheet;
+            currentPage = 1;
+
+            loadData();
+        });
+
+        sheetsContainer.appendChild(button);
+    });
+
+    if (data.sheets.length > 0) {
+        currentSheet = data.sheets[0];
+    }
 }
 
 
 // Загружаем данные файла
 async function loadData() {
-    const response = await fetch(
-        `/files/${encodeURIComponent(currentFile)}?page=${currentPage}&page_size=${pageSize}`
-    );
+
+    let url =
+        `/files/${encodeURIComponent(currentFile)}` +
+        `?page=${currentPage}` +
+        `&page_size=${pageSize}`;
+
+    if (currentSheet) {
+        url += `&sheet_name=${encodeURIComponent(currentSheet)}`;
+    }
+
+    const response = await fetch(url);
 
     const data = await response.json();
 
-    document.getElementById("file-title").textContent = currentFile;
+    document.getElementById("file-title").textContent =
+        currentFile +
+        (currentSheet ? ` — ${currentSheet}` : "");
 
     const tableHead = document.querySelector("#data-table thead");
     const tableBody = document.querySelector("#data-table tbody");
@@ -102,6 +152,7 @@ async function loadData() {
 
 // Кнопка Previous
 document.getElementById("previous").addEventListener("click", async () => {
+
     if (currentPage > 1) {
         currentPage--;
 
@@ -112,6 +163,7 @@ document.getElementById("previous").addEventListener("click", async () => {
 
 // Кнопка Next
 document.getElementById("next").addEventListener("click", async () => {
+
     currentPage++;
 
     await loadData();
