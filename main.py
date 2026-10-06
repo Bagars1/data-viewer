@@ -6,6 +6,7 @@ from services import (
     extract_archive,
     get_files,
     get_file_page,
+    get_excel_sheets,
 )
 
 
@@ -49,16 +50,33 @@ def files():
     }
 
 
+@app.get("/files/{file_name:path}/sheets")
+def excel_sheets(file_name: str):
+    sheets = get_excel_sheets(file_name)
+
+    if sheets is None:
+        return {
+            "error": "Excel file not found"
+        }
+
+    return {
+        "name": file_name,
+        "sheets": sheets,
+    }
+
+
 @app.get("/files/{file_name:path}")
 def file(
     file_name: str,
     page: int = Query(1, ge=1),
-    page_size: int = Query(10, ge=1, le=100)
+    page_size: int = Query(10, ge=1, le=100),
+    sheet_name: str | None = None
 ):
     result = get_file_page(
         file_name,
         page,
-        page_size
+        page_size,
+        sheet_name
     )
 
     if result is None:
