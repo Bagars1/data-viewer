@@ -15,6 +15,10 @@ SUPPORTED_EXTENSIONS = {
 }
 
 
+class SheetNotFoundError(Exception):
+    pass
+
+
 def extract_archive(filename: str, content: bytes) -> list[str]:
     UPLOAD_DIR.mkdir(exist_ok=True)
 
@@ -87,6 +91,12 @@ def read_file(file_path: Path, sheet_name=None):
         if sheet_name is None:
             sheet_name = 0
 
+        if isinstance(sheet_name, str):
+            excel_file = pd.ExcelFile(file_path)
+
+            if sheet_name not in excel_file.sheet_names:
+                raise SheetNotFoundError(sheet_name)
+
         return pd.read_excel(
             file_path,
             sheet_name=sheet_name
@@ -107,6 +117,9 @@ def get_file_page(
         return None
 
     df = read_file(file_path, sheet_name)
+
+    if df is None:
+        return None
 
     total_rows = len(df)
 
