@@ -5,6 +5,23 @@ let currentSheet = null;
 const pageSize = 10;
 
 
+// Показываем сообщение об ошибке
+function showError(message) {
+    const errorMessage = document.getElementById("error-message");
+
+    errorMessage.textContent = message;
+    errorMessage.style.color = "red";
+}
+
+
+// Очищаем сообщение об ошибке
+function clearError() {
+    const errorMessage = document.getElementById("error-message");
+
+    errorMessage.textContent = "";
+}
+
+
 // Загружаем список файлов
 async function loadFiles() {
     const response = await fetch("/files");
@@ -35,6 +52,8 @@ async function loadFile(file) {
     currentPage = 1;
     currentSheet = null;
 
+    clearError();
+
     await loadSheets();
     await loadData();
 }
@@ -53,6 +72,16 @@ async function loadSheets() {
     const response = await fetch(
         `/files/${encodeURIComponent(currentFile)}/sheets`
     );
+
+    if (!response.ok) {
+        const data = await response.json();
+
+        showError(
+            data.detail || "Excel file not found."
+        );
+
+        return;
+    }
 
     const data = await response.json();
 
@@ -80,6 +109,8 @@ async function loadSheets() {
 // Загружаем данные файла
 async function loadData() {
 
+    clearError();
+
     let url =
         `/files/${encodeURIComponent(currentFile)}` +
         `?page=${currentPage}` +
@@ -90,6 +121,17 @@ async function loadData() {
     }
 
     const response = await fetch(url);
+
+    // Проверяем, успешно ли загрузился файл
+    if (!response.ok) {
+        const data = await response.json();
+
+        showError(
+            data.detail || "File not found."
+        );
+
+        return;
+    }
 
     const data = await response.json();
 
@@ -167,6 +209,21 @@ document.getElementById("next").addEventListener("click", async () => {
     currentPage++;
 
     await loadData();
+});
+
+
+// Кнопка Open
+document.getElementById("open-file").addEventListener("click", async () => {
+
+    const fileInput = document.getElementById("file-input");
+    const fileName = fileInput.value.trim();
+
+    if (!fileName) {
+        showError("Please enter a file name.");
+        return;
+    }
+
+    await loadFile(fileName);
 });
 
 

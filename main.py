@@ -1,4 +1,4 @@
-from fastapi import FastAPI, UploadFile, File, Query
+from fastapi import FastAPI, UploadFile, File, Query, HTTPException
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 
@@ -7,6 +7,7 @@ from services import (
     get_files,
     get_file_page,
     get_excel_sheets,
+    SheetNotFoundError,
 )
 
 
@@ -55,9 +56,10 @@ def excel_sheets(file_name: str):
     sheets = get_excel_sheets(file_name)
 
     if sheets is None:
-        return {
-            "error": "Excel file not found"
-        }
+        raise HTTPException(
+            status_code=404,
+            detail=f"Excel file '{file_name}' not found"
+        )
 
     return {
         "name": file_name,
@@ -72,16 +74,24 @@ def file(
     page_size: int = Query(10, ge=1, le=100),
     sheet_name: str | None = None
 ):
-    result = get_file_page(
-        file_name,
-        page,
-        page_size,
-        sheet_name
-    )
+    try:
+        result = get_file_page(
+            file_name,
+            page,
+            page_size,
+            sheet_name
+        )
+
+    except SheetNotFoundError as error:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Sheet '{error.args[0]}' not found in file '{file_name}'"
+        )
 
     if result is None:
-        return {
-            "error": "File not found or unsupported format"
-        }
+        raise HTTPException(
+            status_code=404,
+            detail=f"File '{file_name}' not found or unsupported format"
+        )
 
     return result
